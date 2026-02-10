@@ -1,0 +1,257 @@
+:root {
+  --w-bg: #c0c0c0;
+  --w-white: #ffffff;
+  --w-grey: #dfdfdf;
+  --w-dark-grey: #808080;
+  --w-black: #000000;
+  --w-blue: #000080;
+  --w-font: 'MS Sans Serif', Tahoma, sans-serif;
+
+  font-family: var(--w-font);
+  background-color: #008080;
+  /* Classic teal desktop background */
+  color: var(--w-black);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--w-bg);
+  border-top: 2px solid var(--w-white);
+  border-left: 2px solid var(--w-white);
+  border-right: 2px solid var(--w-dark-grey);
+  border-bottom: 2px solid var(--w-dark-grey);
+}
+
+#root {
+  width: 100%;
+  padding: 10px;
+}
+
+.window-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.window-content {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Common Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.main-layout {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Group Box Style */
+.group-box {
+  border-top: 2px solid var(--w-dark-grey);
+  border-left: 2px solid var(--w-dark-grey);
+  border-right: 2px solid var(--w-white);
+  border-bottom: 2px solid var(--w-white);
+  padding: 15px 10px 10px 10px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.group-box-label {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  background: var(--w-bg);
+  padding: 0 5px;
+  font-size: 13px;
+}
+
+/* Win95 Button */
+button {
+  background: var(--w-bg);
+  border-top: 2px solid var(--w-white);
+  border-left: 2px solid var(--w-white);
+  border-right: 2px solid var(--w-dark-grey);
+  border-bottom: 2px solid var(--w-dark-grey);
+  box-shadow: 1px 1px 0 0 var(--w-black);
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 80px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+button:active:not(:disabled) {
+  border-top: 2px solid var(--w-dark-grey);
+  border-left: 2px solid var(--w-dark-grey);
+  border-right: 2px solid var(--w-white);
+  border-bottom: 2px solid var(--w-white);
+  box-shadow: none;
+  padding: 5px 9px 3px 11px;
+}
+
+button:focus {
+  outline: 1px dotted var(--w-black);
+  outline-offset: -5px;
+}
+
+button:disabled {
+  color: var(--w-dark-grey);
+  text-shadow: 1px 1px 0 var(--w-white);
+  cursor: default;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+  padding: 10px;
+  border-top: 1px solid var(--w-dark-grey);
+}
+
+.menu-bar {
+  background: var(--w-bg);
+  border-bottom: 1px solid var(--w-dark-grey);
+  display: flex;
+  gap: 2px;
+  margin-bottom: 5px;
+}
+
+.menu-item {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  min-width: unset;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.menu-item:hover {
+  background: var(--w-grey);
+  outline: 1px dotted var(--w-black);
+  outline-offset: -3px;
+}
+
+.patch-btn {
+  width: 150px;
+  height: 30px;
+  font-weight: bold;
+}
+
+.title-btn {
+  min-width: 16px !important;
+  height: 14px !important;
+  padding: 0 !important;
+  font-size: 10px !important;
+  margin-left: 2px;
+  background: var(--w-bg);
+}
+
+/* Win95 Input */
+input[type="text"],
+input[type="number"] {
+  border-top: 2px solid var(--w-dark-grey);
+  border-left: 2px solid var(--w-dark-grey);
+  border-right: 2px solid var(--w-white);
+  border-bottom: 2px solid var(--w-white);
+  background: var(--w-white);
+  padding: 3px 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  outline: none;
+}
+
+.file-path {
+  background: var(--w-grey);
+  border: 1px solid var(--w-dark-grey);
+  padding: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Table Style */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--w-white);
+  border: 2px solid var(--w-dark-grey);
+}
+
+th {
+  background: var(--w-bg);
+  border-right: 1px solid var(--w-dark-grey);
+  border-bottom: 1px solid var(--w-dark-grey);
+  padding: 4px;
+  font-size: 12px;
+  text-align: left;
+  font-weight: normal;
+}
+
+td {
+  border-right: 1px solid var(--w-grey);
+  border-bottom: 1px solid var(--w-grey);
+  padding: 2px;
+}
+
+/* Messages */
+.message {
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid var(--w-dark-grey);
+  font-size: 12px;
+}
+
+.message.success {
+  background: #e1ffe1;
+  color: #006400;
+}
+
+.message.error {
+  background: #ffe1e1;
+  color: #8b0000;
+}
+
+/* Utility */
+.h-stack {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.v-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

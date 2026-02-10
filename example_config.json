@@ -1,0 +1,28 @@
+{
+    "commands": [
+        {
+            "old": "BULL",
+            "new": "FULL",
+            "iweb_offsets": [
+                "0x1F3A20",
+                "0x1F3A40"
+            ],
+            "manager_offsets": [
+                "0x2A4B10",
+                "0x2A4B30"
+            ]
+        },
+        {
+            "old": "CMD_LOGIN",
+            "new": "CMD_ENTER",
+            "iweb_offsets": [
+                "0x1F5000",
+                "0x1F5020"
+            ],
+            "manager_offsets": [
+                "0x2A6000",
+                "0x2A6020"
+            ]
+        }
+    ]
+}
