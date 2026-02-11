@@ -1,3 +1,28 @@
+// ===== IWEB.EXE Entry =====
+export interface IwebEntry {
+    offsetStart: number;  // User input (hex)
+    offsetEnd: number;    // Auto-calculated
+    byteCount: number;    // Auto-calculated from offsetEnd - offsetStart
+    decodedString: string; // Auto-decoded from file
+}
+
+// ===== MANAGER.EXE Entry =====
+export interface ManagerEntry {
+    offsetStart: number;  // User input (hex)
+    offsetEnd: number;    // Auto-calculated
+    byteCount: number;    // Auto-calculated from offsetEnd - offsetStart
+    decodedString: string; // Auto-decoded from file
+}
+
+// ===== Command Entry (combines both files) =====
+export interface CommandEntry {
+    baseCmd: string;      // One of 47 base commands (read-only label)
+    newCmd: string;       // User input: new command
+    iweb: IwebEntry;      // IWEB.EXE configuration
+    manager: ManagerEntry; // MANAGER.EXE configuration
+}
+
+// ===== Legacy command format (for backward compatibility) =====
 export interface Command {
     old: string;
     new: string;
@@ -5,7 +30,9 @@ export interface Command {
 }
 
 export interface Config {
-    commands: Command[];
+    iwebPath: string;
+    managerPath: string;
+    commands: CommandEntry[];
 }
 
 export interface PatchResult {

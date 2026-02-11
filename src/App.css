@@ -43,10 +43,10 @@ body {
 }
 
 .window-content {
-  padding: 10px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap:5px;
 }
 
 /* Common Layout */
@@ -254,4 +254,139 @@ td {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* CommandTable Styling */
+
+.group-box {
+  border: 1px solid #c0c0c0;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 10px 0;
+  background: #f5f5f5;
+}
+
+.group-box-label {
+  position: relative;
+  top: -12px;
+  left: 10px;
+  background: white;
+  padding: 0 5px;
+  font-weight: bold;
+  font-size: 12px;
+  color: #000;
+}
+
+.editor-section {
+  margin: 15px 0;
+}
+
+.section-title {
+  margin: 10px 0 8px 0;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333;
+  padding-left: 5px;
+  border-left: 3px solid #2196f3;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.command-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 11px;
+  border: 1px solid #c0c0c0;
+}
+
+.command-table thead {
+  background: #e8f4f8;
+  border-bottom: 2px solid #0d47a1;
+}
+
+.command-table th {
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  color: #0d47a1;
+  border-right: 1px solid #b0bec5;
+}
+
+.command-table th:last-child {
+  border-right: none;
+}
+
+.command-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.command-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.command-table tbody tr.invalid-row {
+  background: #fff3e0;
+}
+
+.command-table td {
+  padding: 6px 8px;
+  border-right: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+
+.command-table td:last-child {
+  border-right: none;
+}
+
+.label-cell {
+  background: #f0f0f0;
+  font-weight: bold;
+  color: #000080;
+}
+
+.readonly-cell {
+  background: #e0e0e0;
+}
+
+.input-cell {
+  background: white;
+}
+
+.command-table input[type="text"],
+.command-table input[type="number"],
+.command-table select {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  box-sizing: border-box;
+}
+
+.command-table input[type="text"]:focus,
+.command-table input[type="number"]:focus,
+.command-table select:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 3px rgba(33, 150, 243, 0.5);
+}
+
+.command-table input[readOnly] {
+  background: #e0e0e0;
+  cursor: not-allowed;
+}
+
+/* IWEB Table */
+.iweb-table {
+  margin-bottom: 20px;
+}
+
+/* MANAGER Table */
+.manager-table {
+  margin-bottom: 20px;
 }
