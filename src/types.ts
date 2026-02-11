@@ -17,9 +17,15 @@ export interface ManagerEntry {
     decodedString: string; // Auto-decoded from file
 }
 
+// ===== Base Command Reference =====
+export interface BaseCommand {
+    index: number;
+    name: string;
+}
+
 // ===== Command Entry (combines both files) =====
 export interface CommandEntry {
-    baseCmd: string;      // One of 47 base commands (read-only label)
+    baseCmd: string;      // The "name" from BaseCommand
     newCmd: string;       // User input: new command
     iweb: IwebEntry;      // IWEB.EXE configuration
     manager: ManagerEntry; // MANAGER.EXE configuration

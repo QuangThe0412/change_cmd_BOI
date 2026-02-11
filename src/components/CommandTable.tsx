@@ -1,5 +1,5 @@
 import React from 'react';
-import { CommandEntry } from '../types';
+import { CommandEntry, BaseCommand } from '../types';
 import {
     getByteCountFromCommand,
     parseHexOffset,
@@ -44,7 +44,7 @@ interface CommandTableProps {
     onCommandsChange: (commands: CommandEntry[]) => void;
     iwebFileData?: Uint8Array;
     managerFileData?: Uint8Array;
-    baseCommands: string[];
+    baseCommands: BaseCommand[];
     onLog?: (message: string) => void;
 }
 
@@ -299,7 +299,7 @@ export default function CommandTable({
                                                 >
                                                     <option value="">-- Select Base Command --</option>
                                                     {baseCommands.map((c) => (
-                                                        <option key={c} value={c}>{c}</option>
+                                                        <option key={c.index} value={c.name}>{c.name}</option>
                                                     ))}
                                                 </select>
                                             </td>
@@ -566,8 +566,8 @@ export default function CommandTable({
                     style={{ padding: '5px', minWidth: '200px' }}
                 >
                     <option value="">-- Select Base Command to Add --</option>
-                    {baseCommands.filter(c => !commands.some(cmd => cmd.baseCmd === c)).map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                    {baseCommands.filter(c => !commands.some(cmd => cmd.baseCmd === c.name)).map((c) => (
+                        <option key={c.index} value={c.name}>{c.name}</option>
                     ))}
                 </select>
             </div>

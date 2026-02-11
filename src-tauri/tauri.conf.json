@@ -25,7 +25,10 @@
             "dialog": {
                 "all": false,
                 "open": true,
-                "save": true
+                "save": true,
+                "ask": true,
+                "message": true,
+                "confirm": true
             },
             "path": {
                 "all": true

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
 import { readTextFile, writeTextFile, exists, readBinaryFile } from '@tauri-apps/api/fs';
-import { join } from '@tauri-apps/api/path';
+import { join, basename } from '@tauri-apps/api/path';
+import { ask } from '@tauri-apps/api/dialog';
 import FileSelector from './components/FileSelector';
 import CommandTable from './components/CommandTable';
-import { CommandEntry, PatchResult } from './types';
-import { numberToHex } from './utils';
+import { CommandEntry, PatchResult, BaseCommand } from './types';
+import { numberToHex, createEmptyCommandEntry } from './utils';
 import './App.css';
 
 const CONFIG_FILE = 'settings.json';
@@ -14,12 +15,13 @@ function App() {
     const [iwebPath, setIwebPath] = useState('');
     const [managerPath, setManagerPath] = useState('');
     const [commands, setCommands] = useState<CommandEntry[]>([]);
-    const [baseCommands, setBaseCommands] = useState<string[]>([]);
+    const [baseCommands, setBaseCommands] = useState<BaseCommand[]>([]);
     const [iwebFileData, setIwebFileData] = useState<Uint8Array | undefined>();
     const [managerFileData, setManagerFileData] = useState<Uint8Array | undefined>();
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [dataDir, setDataDir] = useState<string>('');
     const [debugLogs, setDebugLogs] = useState<string[]>([]);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Helper to add debug logs
     const addLog = (log: string) => {
@@ -27,6 +29,45 @@ function App() {
         setDebugLogs(prev => [...prev, `[${timestamp}] ${log}`]);
         console.log(`[${timestamp}] ${log}`);
     };
+
+    // Helper to decode strings from file data
+    const decodeString = (data: Uint8Array | undefined, start: number, end: number): string => {
+        if (!data || start <= 0 || start >= data.length) return '';
+        const clampedEnd = Math.min(end, data.length);
+        if (clampedEnd <= start) return '';
+        return Array.from(data.slice(start, clampedEnd))
+            .map(b => String.fromCharCode(b))
+            .filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126)
+            .join('');
+    };
+
+    // Update decoded strings when file data or commands change
+    useEffect(() => {
+        if (!iwebFileData && !managerFileData) return;
+        
+        let changed = false;
+        const newCommands = commands.map(cmd => {
+            const iwebDec1 = decodeString(iwebFileData, cmd.iweb.offsetStart, cmd.iweb.offsetEnd);
+            const iwebDec2 = decodeString(iwebFileData, cmd.iweb.offsetStart2, cmd.iweb.offsetEnd2);
+            const managerDec = decodeString(managerFileData, cmd.manager.offsetStart, cmd.manager.offsetEnd);
+            
+            if (cmd.iweb.decodedString !== iwebDec1 || 
+                cmd.iweb.decodedString2 !== iwebDec2 || 
+                cmd.manager.decodedString !== managerDec) {
+                changed = true;
+                return {
+                    ...cmd,
+                    iweb: { ...cmd.iweb, decodedString: iwebDec1, decodedString2: iwebDec2 },
+                    manager: { ...cmd.manager, decodedString: managerDec }
+                };
+            }
+            return cmd;
+        });
+
+        if (changed) {
+            setCommands(newCommands);
+        }
+    }, [iwebFileData, managerFileData, commands.length]); 
 
     console.log('App rendered, commands:', commands);
 
@@ -75,7 +116,7 @@ function App() {
             }
         };
         loadFileData();
-    }, [iwebPath]);
+    }, [iwebPath, refreshTrigger]);
 
     useEffect(() => {
         const loadFileData = async () => {
@@ -108,7 +149,7 @@ function App() {
             }
         };
         loadFileData();
-    }, [managerPath]);
+    }, [managerPath, refreshTrigger]);
 
     // Load saved config
     useEffect(() => {
@@ -132,21 +173,33 @@ function App() {
                     }
                     
                     if (savedData.commands && Array.isArray(savedData.commands)) {
-                        // Validate and migrate old format to new format if needed
-                        const validCommands = savedData.commands.map((cmd: any) => {
-                            if (!cmd.iweb || !cmd.manager) {
-                                // Old format or incomplete, migrate it
-                                return {
-                                    baseCmd: cmd.baseCmd || cmd.old || '',
-                                    newCmd: cmd.newCmd || cmd.new || '',
-                                    iweb: cmd.iweb || { offsetStart: 0, offsetEnd: 0, byteCount: 0, decodedString: '' },
-                                    manager: cmd.manager || { offsetStart: 0, offsetEnd: 0, byteCount: 0, decodedString: '' }
-                                };
-                            }
-                            return cmd;
+                        // Reconstruct full command objects from sparse saved data
+                        const reconstructed = savedData.commands.map((saved: any) => {
+                            // Create a full entry with default calculations
+                            const entry = createEmptyCommandEntry(saved.baseCmd);
+                            const byteCount = entry.iweb.byteCount;
+
+                            // Apply saved user inputs
+                            entry.newCmd = saved.newCmd || '';
+                            
+                            // Load offsets (handle either new sparse format or old full format if it exists)
+                            const off1 = saved.offset1 !== undefined ? saved.offset1 : (saved.iweb?.offsetStart || 0);
+                            const off2 = saved.offset2 !== undefined ? saved.offset2 : (saved.iweb?.offsetStart2 || 0);
+                            const offM = saved.offsetM !== undefined ? saved.offsetM : (saved.manager?.offsetStart || 0);
+
+                            entry.iweb.offsetStart = off1;
+                            entry.iweb.offsetEnd = off1 > 0 ? off1 + byteCount : 0;
+                            
+                            entry.iweb.offsetStart2 = off2;
+                            entry.iweb.offsetEnd2 = off2 > 0 ? off2 + byteCount : 0;
+                            
+                            entry.manager.offsetStart = offM;
+                            entry.manager.offsetEnd = offM > 0 ? offM + byteCount : 0;
+
+                            return entry;
                         });
-                        setCommands(validCommands);
-                        addLog(`✓ Loaded ${validCommands.length} commands from settings`);
+                        setCommands(reconstructed);
+                        addLog(`✓ Loaded and recalculated ${reconstructed.length} commands`);
                     }
                 } else {
                     // Create default config if doesn't exist
@@ -164,7 +217,7 @@ function App() {
             }
         };
         loadSavedConfig();
-    }, [dataDir]);
+    }, [dataDir, refreshTrigger]);
 
     // Auto-save config
     useEffect(() => {
@@ -173,10 +226,20 @@ function App() {
         const saveTimeout = setTimeout(async () => {
             try {
                 const filePath = await join(dataDir, CONFIG_FILE);
+                
+                // Save only essential user-input fields
+                const sparseCommands = commands.map(cmd => ({
+                    baseCmd: cmd.baseCmd,
+                    newCmd: cmd.newCmd,
+                    offset1: cmd.iweb.offsetStart,
+                    offset2: cmd.iweb.offsetStart2,
+                    offsetM: cmd.manager.offsetStart
+                }));
+
                 const configData: any = {
                     iwebPath,
                     managerPath,
-                    commands,
+                    commands: sparseCommands,
                     baseCommand: baseCommands
                 };
                 await writeTextFile(filePath, JSON.stringify(configData, null, 2));
@@ -196,6 +259,12 @@ function App() {
         }
     };
 
+    const refreshSettings = () => {
+        setRefreshTrigger(prev => prev + 1);
+        addLog('Refreshing configuration from settings.json...');
+        setMessage({ type: 'success', text: 'Settings reloaded!' });
+    };
+
     const resetToDefaults = () => {
         setCommands([]);
         setMessage({ type: 'success', text: 'Reset to default settings' });
@@ -207,11 +276,11 @@ function App() {
         cmd.baseCmd !== '' &&
         cmd.iweb.offsetStart > 0 &&
         cmd.iweb.offsetEnd > cmd.iweb.offsetStart &&
+        cmd.iweb.offsetStart2 > 0 && // Rule: Row 2 must have an offset
         cmd.manager.offsetStart > 0 &&
         cmd.manager.offsetEnd > cmd.manager.offsetStart &&
         cmd.newCmd &&
-        cmd.newCmd.length === cmd.baseCmd.length &&
-        cmd.newCmd !== cmd.baseCmd
+        cmd.newCmd.length === cmd.baseCmd.length
     );
 
     const applyPatch = async () => {
@@ -244,11 +313,46 @@ function App() {
                 };
             });
 
-            const result: PatchResult = await invoke('apply_patch', {
-                iwebPath,
-                managerPath,
-                config: { commands: patchCommands }
-            });
+            const performPatch = async () => {
+                return await invoke('apply_patch', {
+                    iwebPath,
+                    managerPath,
+                    config: { commands: patchCommands }
+                }) as PatchResult;
+            };
+
+            let result = await performPatch();
+
+            // Check for file locking error (os error 32 on Windows)
+            if (!result.success && result.message.includes('used by another process')) {
+                const confirmed = await ask(
+                    `File is being used by another process. Do you want to try closing it and continue?\n\n(Dòng này sẽ thực hiện taskkill cho iweb.exe/manager.exe)`,
+                    { title: 'File Access Error', type: 'warning' }
+                );
+
+                if (confirmed) {
+                    const iwebExt = await basename(iwebPath);
+                    const managerExt = await basename(managerPath);
+
+                    addLog(`Attempting to kill: ${iwebExt}, ${managerExt}`);
+                    await invoke('kill_process', { name: iwebExt });
+                    await invoke('kill_process', { name: managerExt });
+
+                    // Wait a bit for the OS to release the file handles
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    addLog('Retrying patch...');
+                    result = await performPatch();
+                }
+            }
+
+            if (result.success) {
+                // Wait 500ms for OS to settle before reloading
+                setTimeout(() => {
+                    setRefreshTrigger(prev => prev + 1);
+                }, 500);
+            }
+
             setMessage({ type: result.success ? 'success' : 'error', text: result.message });
         } catch (error) {
             setMessage({ type: 'error', text: `Error: ${error}` });
@@ -260,6 +364,9 @@ function App() {
             <div className="menu-bar">
                 <button className="menu-item" onClick={openSettingsFile}>
                     Open Settings File (JSON)
+                </button>
+                <button className="menu-item" onClick={refreshSettings} style={{ background: '#e8f5e9', color: '#2e7d32' }}>
+                    Refresh Settings
                 </button>
                 <button className="menu-item" onClick={resetToDefaults} style={{ color: '#666' }}>
                     Reset

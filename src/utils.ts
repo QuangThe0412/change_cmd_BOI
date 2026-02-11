@@ -124,7 +124,7 @@ export const calculateManagerEntry = (
 export const validateNewCommand = (baseCmd: string, newCmd: string): boolean => {
     if (!baseCmd || baseCmd === 'N/A' || newCmd === '') return true;
     const baseLength = baseCmd.length;
-    return newCmd.length === baseLength && newCmd !== baseCmd;
+    return newCmd.length === baseLength;
 };
 
 /**

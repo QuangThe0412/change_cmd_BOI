@@ -23,24 +23,22 @@ struct PatchResult {
     message: String,
 }
 
-fn patch_file_at_offset(
-    file_path: &str,
+fn apply_patch_to_buffer(
+    data: &mut Vec<u8>,
     offset_start: u64,
     offset_end: u64,
     new_string: &str,
+    file_label: &str,
 ) -> Result<(), String> {
     if offset_start == 0 {
         return Ok(()); // Skip if offset is not set
     }
 
-    let mut data = fs::read(file_path)
-        .map_err(|e| format!("Failed to read file '{}': {}", file_path, e))?;
-
     let start = offset_start as usize;
     let end = offset_end as usize;
 
     if start >= data.len() {
-        return Err(format!("Offset 0x{:X} is out of bounds for file '{}'", offset_start, file_path));
+        return Err(format!("Offset 0x{:X} is out of bounds for {}", offset_start, file_label));
     }
 
     let new_bytes = new_string.as_bytes();
@@ -48,8 +46,8 @@ fn patch_file_at_offset(
 
     if new_bytes.len() > length_available {
         return Err(format!(
-            "New string is too long for offset 0x{:X}: string length is {}, but available space is {}",
-            offset_start, new_bytes.len(), length_available
+            "New string is too long for offset 0x{:X} in {}: string length is {}, but available space is {}",
+            offset_start, file_label, new_bytes.len(), length_available
         ));
     }
 
@@ -57,14 +55,6 @@ fn patch_file_at_offset(
     for (i, byte) in new_bytes.iter().enumerate() {
         data[start + i] = *byte;
     }
-
-    // Optionally: Fill the remaining space with null bytes (0x00) if needed
-    // for i in new_bytes.len()..length_available {
-    //     data[start + i] = 0;
-    // }
-
-    fs::write(file_path, data)
-        .map_err(|e| format!("Failed to write to file '{}': {}", file_path, e))?;
 
     Ok(())
 }
@@ -88,35 +78,53 @@ fn apply_patch(iweb_path: String, manager_path: String, config: Config) -> Patch
         return PatchResult { success: false, message: e };
     }
 
+    // Read entire files into memory
+    let mut iweb_data = match fs::read(&iweb_path) {
+        Ok(d) => d,
+        Err(e) => return PatchResult { success: false, message: format!("Failed to read IWEB: {}", e) },
+    };
+    let mut manager_data = match fs::read(&manager_path) {
+        Ok(d) => d,
+        Err(e) => return PatchResult { success: false, message: format!("Failed to read MANAGER: {}", e) },
+    };
+
     for cmd in &config.commands {
-        // Patch iweb.exe - Supports multiple offsets (Line 1 & Line 2)
+        // Patch iweb.exe buffer - Supports multiple offsets (Line 1 & Line 2)
         for chunk in cmd.iweb_offsets.chunks(2) {
             if chunk.len() == 2 {
                 let start = chunk[0];
                 let end = chunk[1];
                 if start > 0 {
-                    if let Err(e) = patch_file_at_offset(&iweb_path, start, end, &cmd.new) {
+                    if let Err(e) = apply_patch_to_buffer(&mut iweb_data, start, end, &cmd.new, "IWEB") {
                         return PatchResult { success: false, message: format!("IWEB patch error for '{}' at 0x{:X}: {}", cmd.old, start, e) };
                     }
                 }
             }
         }
 
-        // Patch managerserver.exe
+        // Patch managerserver.exe buffer
         if cmd.manager_offsets.len() >= 2 {
             let start = cmd.manager_offsets[0];
             let end = cmd.manager_offsets[1];
             if start > 0 {
-                if let Err(e) = patch_file_at_offset(&manager_path, start, end, &cmd.new) {
+                if let Err(e) = apply_patch_to_buffer(&mut manager_data, start, end, &cmd.new, "MANAGER") {
                     return PatchResult { success: false, message: format!("MANAGER patch error for '{}' at 0x{:X}: {}", cmd.old, start, e) };
                 }
             }
         }
     }
 
+    // Write modified buffers back to files (only ONCE per file)
+    if let Err(e) = fs::write(&iweb_path, iweb_data) {
+        return PatchResult { success: false, message: format!("Failed to write to IWEB: {}", e) };
+    }
+    if let Err(e) = fs::write(&manager_path, manager_data) {
+        return PatchResult { success: false, message: format!("Failed to write to MANAGER: {}", e) };
+    }
+
     PatchResult {
         success: true,
-        message: format!("✅ Patching complete! All {} commands have been updated at their respective offsets.", config.commands.len()),
+        message: format!("✅ Patching complete! All {} commands have been updated successfully.", config.commands.len()),
     }
 }
 
@@ -153,9 +161,35 @@ fn open_file(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn kill_process(name: String) -> Result<bool, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = std::process::Command::new("taskkill")
+            .arg("/F")
+            .arg("/IM")
+            .arg(&name)
+            .output()
+            .map_err(|e| format!("Failed to execute taskkill: {}", e))?;
+        
+        Ok(output.status.success())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        // Simple kill for Unix-like
+        let output = std::process::Command::new("pkill")
+            .arg("-f")
+            .arg(&name)
+            .output()
+            .map_err(|e| format!("Failed to execute pkill: {}", e))?;
+            
+        Ok(output.status.success())
+    }
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![apply_patch, get_data_dir, open_file])
+        .invoke_handler(tauri::generate_handler![apply_patch, get_data_dir, open_file, kill_process])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
