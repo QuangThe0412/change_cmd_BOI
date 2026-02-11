@@ -78,7 +78,10 @@ export const calculateIwebEntry = (
         offsetStart,
         offsetEnd,
         byteCount,
-        decodedString
+        decodedString,
+        offsetStart2: 0,
+        offsetEnd2: 0,
+        decodedString2: ''
     };
 };
 
@@ -128,19 +131,23 @@ export const validateNewCommand = (baseCmd: string, newCmd: string): boolean => 
  * Create empty CommandEntry
  */
 export const createEmptyCommandEntry = (baseCmd: string = ''): CommandEntry => {
+    const byteCount = baseCmd ? getByteCountFromCommand(baseCmd) : 0;
     return {
         baseCmd,
         newCmd: '',
         iweb: {
             offsetStart: 0,
             offsetEnd: 0,
-            byteCount: baseCmd ? getByteCountFromCommand(baseCmd) : 0,
-            decodedString: ''
+            byteCount: byteCount,
+            decodedString: '',
+            offsetStart2: 0,
+            offsetEnd2: 0,
+            decodedString2: ''
         },
         manager: {
             offsetStart: 0,
             offsetEnd: 0,
-            byteCount: 0,
+            byteCount: byteCount,
             decodedString: ''
         }
     };

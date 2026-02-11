@@ -4,6 +4,9 @@ export interface IwebEntry {
     offsetEnd: number;    // Auto-calculated
     byteCount: number;    // Auto-calculated from offsetEnd - offsetStart
     decodedString: string; // Auto-decoded from file
+    offsetStart2: number; // Secondary offset (Line 2)
+    offsetEnd2: number;   // Auto-calculated (Line 2)
+    decodedString2: string; // Auto-decoded (Line 2)
 }
 
 // ===== MANAGER.EXE Entry =====

@@ -229,12 +229,20 @@ function App() {
             setMessage({ type: 'success', text: 'Processing patch...' });
             
             // Convert CommandEntry to format expected by Rust backend
-            const patchCommands = commands.map(cmd => ({
-                old: cmd.baseCmd,
-                new: cmd.newCmd,
-                iweb_offsets: [cmd.iweb.offsetStart, cmd.iweb.offsetEnd],
-                manager_offsets: [cmd.manager.offsetStart, cmd.manager.offsetEnd]
-            }));
+            const patchCommands = commands.map(cmd => {
+                const iweb_offsets = [cmd.iweb.offsetStart, cmd.iweb.offsetEnd];
+                // Add second offset if it exists
+                if (cmd.iweb.offsetStart2 && cmd.iweb.offsetStart2 > 0) {
+                    iweb_offsets.push(cmd.iweb.offsetStart2, cmd.iweb.offsetEnd2);
+                }
+                
+                return {
+                    old: cmd.baseCmd,
+                    new: cmd.newCmd,
+                    iweb_offsets,
+                    manager_offsets: [cmd.manager.offsetStart, cmd.manager.offsetEnd]
+                };
+            });
 
             const result: PatchResult = await invoke('apply_patch', {
                 iwebPath,

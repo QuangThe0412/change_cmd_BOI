@@ -5,15 +5,16 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct Command {
+struct PatchCommand {
     old: String,
     new: String,
-    hex_pattern: String,
+    iweb_offsets: Vec<u64>,
+    manager_offsets: Vec<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
-    commands: Vec<Command>,
+    commands: Vec<PatchCommand>,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,57 +23,50 @@ struct PatchResult {
     message: String,
 }
 
-fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    let clean: String = hex.chars().filter(|c| c.is_ascii_hexdigit()).collect();
-    if clean.is_empty() { return Vec::new(); }
-    (0..clean.len())
-        .step_by(2)
-        .filter_map(|i| {
-            if i + 2 <= clean.len() {
-                u8::from_str_radix(&clean[i..i+2], 16).ok()
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn patch_file_pattern(
+fn patch_file_at_offset(
     file_path: &str,
-    old_pattern_hex: &str,
+    offset_start: u64,
+    offset_end: u64,
     new_string: &str,
-) -> Result<usize, String> {
-    let old_bytes = hex_to_bytes(old_pattern_hex);
-    if old_bytes.is_empty() {
-        return Ok(0); // Skip empty patterns
-    }
-    
-    let new_bytes = new_string.as_bytes();
-    if old_bytes.len() != new_bytes.len() {
-        return Err(format!("Pattern length mismatch: {} bytes vs {} chars", old_bytes.len(), new_bytes.len()));
+) -> Result<(), String> {
+    if offset_start == 0 {
+        return Ok(()); // Skip if offset is not set
     }
 
     let mut data = fs::read(file_path)
         .map_err(|e| format!("Failed to read file '{}': {}", file_path, e))?;
 
-    let mut count = 0;
-    let mut i = 0;
-    while i <= data.len().saturating_sub(old_bytes.len()) {
-        if &data[i..i + old_bytes.len()] == &old_bytes[..] {
-            data[i..i + old_bytes.len()].copy_from_slice(new_bytes);
-            count += 1;
-            i += old_bytes.len();
-        } else {
-            i += 1;
-        }
+    let start = offset_start as usize;
+    let end = offset_end as usize;
+
+    if start >= data.len() {
+        return Err(format!("Offset 0x{:X} is out of bounds for file '{}'", offset_start, file_path));
     }
 
-    if count > 0 {
-        fs::write(file_path, data)
-            .map_err(|e| format!("Failed to write to file '{}': {}", file_path, e))?;
+    let new_bytes = new_string.as_bytes();
+    let length_available = end - start;
+
+    if new_bytes.len() > length_available {
+        return Err(format!(
+            "New string is too long for offset 0x{:X}: string length is {}, but available space is {}",
+            offset_start, new_bytes.len(), length_available
+        ));
     }
 
-    Ok(count)
+    // Overwrite existing data with the new string
+    for (i, byte) in new_bytes.iter().enumerate() {
+        data[start + i] = *byte;
+    }
+
+    // Optionally: Fill the remaining space with null bytes (0x00) if needed
+    // for i in new_bytes.len()..length_available {
+    //     data[start + i] = 0;
+    // }
+
+    fs::write(file_path, data)
+        .map_err(|e| format!("Failed to write to file '{}': {}", file_path, e))?;
+
+    Ok(())
 }
 
 fn create_backup(file_path: &str) -> Result<String, String> {
@@ -94,25 +88,35 @@ fn apply_patch(iweb_path: String, manager_path: String, config: Config) -> Patch
         return PatchResult { success: false, message: e };
     }
 
-    let mut total_matches = 0;
-
     for cmd in &config.commands {
-        // Patch iweb.exe
-        match patch_file_pattern(&iweb_path, &cmd.hex_pattern, &cmd.new) {
-            Ok(c) => total_matches += c,
-            Err(e) => return PatchResult { success: false, message: format!("iweb pattern error: {}", e) },
+        // Patch iweb.exe - Supports multiple offsets (Line 1 & Line 2)
+        for chunk in cmd.iweb_offsets.chunks(2) {
+            if chunk.len() == 2 {
+                let start = chunk[0];
+                let end = chunk[1];
+                if start > 0 {
+                    if let Err(e) = patch_file_at_offset(&iweb_path, start, end, &cmd.new) {
+                        return PatchResult { success: false, message: format!("IWEB patch error for '{}' at 0x{:X}: {}", cmd.old, start, e) };
+                    }
+                }
+            }
         }
 
         // Patch managerserver.exe
-        match patch_file_pattern(&manager_path, &cmd.hex_pattern, &cmd.new) {
-            Ok(c) => total_matches += c,
-            Err(e) => return PatchResult { success: false, message: format!("manager pattern error: {}", e) },
+        if cmd.manager_offsets.len() >= 2 {
+            let start = cmd.manager_offsets[0];
+            let end = cmd.manager_offsets[1];
+            if start > 0 {
+                if let Err(e) = patch_file_at_offset(&manager_path, start, end, &cmd.new) {
+                    return PatchResult { success: false, message: format!("MANAGER patch error for '{}' at 0x{:X}: {}", cmd.old, start, e) };
+                }
+            }
         }
     }
 
     PatchResult {
         success: true,
-        message: format!("✅ Patching complete! Found and replaced {} occurrences across both files.", total_matches),
+        message: format!("✅ Patching complete! All {} commands have been updated at their respective offsets.", config.commands.len()),
     }
 }
 
