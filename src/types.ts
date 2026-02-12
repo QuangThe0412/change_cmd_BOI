@@ -29,6 +29,7 @@ export interface CommandEntry {
     newCmd: string;       // User input: new command
     iweb: IwebEntry;      // IWEB.EXE configuration
     manager: ManagerEntry; // MANAGER.EXE configuration
+    isBlocked?: boolean;  // If true, the command is kept as is (not patched)
 }
 
 // ===== Legacy command format (for backward compatibility) =====

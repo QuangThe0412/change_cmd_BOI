@@ -227,9 +227,10 @@ export default function CommandTable({
                                 <th style={{ width: '10%' }}>Byte Count</th>
                                 <th style={{ width: '15%' }}>Offset Start (Hex)</th>
                                 <th style={{ width: '15%' }}>Offset End</th>
-                                <th style={{ width: '10%' }}>Bytes</th>
+                                <th style={{ width: '100px' }}>Bytes</th>
                                 <th style={{ width: '20%' }}>Decoded String</th>
                                 <th style={{ width: '15%' }}>New Command</th>
+                                <th style={{ width: '120px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -251,7 +252,10 @@ export default function CommandTable({
                                 return (
                                     <React.Fragment key={`iweb-group-${index}`}>
                                         {/* Row 1: Primary Offset */}
-                                        <tr className={!isValidNew ? 'invalid-row' : ''}>
+                                        <tr 
+                                            className={`${!isValidNew ? 'invalid-row' : ''} ${cmd.isBlocked ? 'blocked-row' : ''}`}
+                                            style={{ opacity: cmd.isBlocked ? 0.6 : 1 }}
+                                        >
                                             {/* Col 1: Base Command Label */}
                                             <td className="label-cell">
                                                 <select
@@ -370,6 +374,45 @@ export default function CommandTable({
                                                     }}
                                                 />
                                             </td>
+
+                                            {/* Col 8: Actions (Block/Remove) */}
+                                            <td rowSpan={2} style={{ verticalAlign: 'middle', textAlign: 'center', borderLeft: '1px solid #ccc' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px' }}>
+                                                    <button
+                                                        onClick={() => {
+                                                            const newCmds = [...commands];
+                                                            newCmds[index].isBlocked = !newCmds[index].isBlocked;
+                                                            onLog?.(`[${cmd.baseCmd}] ${newCmds[index].isBlocked ? 'Blocked (will not patch)' : 'Unblocked'}`);
+                                                            onCommandsChange(newCmds);
+                                                        }}
+                                                        style={{
+                                                            fontSize: '11px',
+                                                            padding: '2px 8px',
+                                                            background: cmd.isBlocked ? '#4caf50' : '#ff9800',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '3px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {cmd.isBlocked ? 'Unblock' : 'Block'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeCommand(index)}
+                                                        style={{
+                                                            fontSize: '11px',
+                                                            padding: '2px 8px',
+                                                            background: '#f44336',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '3px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
 
                                         {/* Row 2: Secondary Offset (Line 2) */}
@@ -472,7 +515,10 @@ export default function CommandTable({
                         <tbody>
                             {commands.map((cmd, index) => {
                                 return (
-                                    <tr key={`manager-${index}`}>
+                                    <tr 
+                                        key={`manager-${index}`}
+                                        style={{ opacity: cmd.isBlocked ? 0.6 : 1 }}
+                                    >
                                         {/* Col 1: Command Reference */}
                                         <td className="label-cell">
                                             <input
@@ -571,46 +617,6 @@ export default function CommandTable({
                     ))}
                 </select>
             </div>
-
-            {/* Commands List with Remove Buttons */}
-            {commands.length > 0 && (
-                <div style={{ marginTop: '10px' }}>
-                    <p style={{ fontSize: '12px', color: '#666' }}>Active Commands:</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                        {commands.map((cmd, index) => (
-                            <div
-                                key={`tag-${index}`}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '3px 8px',
-                                    background: '#e3f2fd',
-                                    border: '1px solid #2196f3',
-                                    borderRadius: '3px',
-                                    fontSize: '11px'
-                                }}
-                            >
-                                <span>{cmd.baseCmd}</span>
-                                <button
-                                    onClick={() => removeCommand(index)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#d32f2f',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        padding: '0'
-                                    }}
-                                    title="Remove this command"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

@@ -129,8 +129,9 @@ button:disabled {
 
 .action-bar {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
   margin-top: auto;
   padding: 10px;
   border-top: 1px solid var(--w-dark-grey);
@@ -227,10 +228,13 @@ td {
 
 /* Messages */
 .message {
-  margin-top: 10px;
-  padding: 5px;
+  flex: 1;
+  padding: 5px 10px;
   border: 1px solid var(--w-dark-grey);
   font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .message.success {
@@ -389,4 +393,19 @@ td {
 /* MANAGER Table */
 .manager-table {
   margin-bottom: 20px;
+}
+
+.blocked-row {
+  background-color: #f0f0f0 !important;
+  opacity: 0.6;
+}
+
+.blocked-row td {
+  color: #888;
+}
+
+.blocked-row input,
+.blocked-row select {
+  color: #888 !important;
+  background-color: #f5f5f5 !important;
 }

@@ -196,6 +196,8 @@ function App() {
                             entry.manager.offsetStart = offM;
                             entry.manager.offsetEnd = offM > 0 ? offM + byteCount : 0;
 
+                            entry.isBlocked = saved.isBlocked || false;
+
                             return entry;
                         });
                         setCommands(reconstructed);
@@ -233,7 +235,8 @@ function App() {
                     newCmd: cmd.newCmd,
                     offset1: cmd.iweb.offsetStart,
                     offset2: cmd.iweb.offsetStart2,
-                    offsetM: cmd.manager.offsetStart
+                    offsetM: cmd.manager.offsetStart,
+                    isBlocked: cmd.isBlocked || false
                 }));
 
                 const configData: any = {
@@ -298,20 +301,22 @@ function App() {
             setMessage({ type: 'success', text: 'Processing patch...' });
             
             // Convert CommandEntry to format expected by Rust backend
-            const patchCommands = commands.map(cmd => {
-                const iweb_offsets = [cmd.iweb.offsetStart, cmd.iweb.offsetEnd];
-                // Add second offset if it exists
-                if (cmd.iweb.offsetStart2 && cmd.iweb.offsetStart2 > 0) {
-                    iweb_offsets.push(cmd.iweb.offsetStart2, cmd.iweb.offsetEnd2);
-                }
-                
-                return {
-                    old: cmd.baseCmd,
-                    new: cmd.newCmd,
-                    iweb_offsets,
-                    manager_offsets: [cmd.manager.offsetStart, cmd.manager.offsetEnd]
-                };
-            });
+            const patchCommands = commands
+                .filter(cmd => !cmd.isBlocked) // Skip blocked commands
+                .map(cmd => {
+                    const iweb_offsets = [cmd.iweb.offsetStart, cmd.iweb.offsetEnd];
+                    // Add second offset if it exists
+                    if (cmd.iweb.offsetStart2 && cmd.iweb.offsetStart2 > 0) {
+                        iweb_offsets.push(cmd.iweb.offsetStart2, cmd.iweb.offsetEnd2);
+                    }
+                    
+                    return {
+                        old: cmd.baseCmd,
+                        new: cmd.newCmd,
+                        iweb_offsets,
+                        manager_offsets: [cmd.manager.offsetStart, cmd.manager.offsetEnd]
+                    };
+                });
 
             const performPatch = async () => {
                 return await invoke('apply_patch', {
@@ -396,6 +401,26 @@ function App() {
             </div>
 
             <div className="action-bar">
+                <div style={{ flex: 1, display: 'flex' }}>
+                    {message && (
+                        <div className={`message ${message.type}`} style={{ width: '100%' }}>
+                            <span>{message.text}</span>
+                            <button
+                                onClick={() => setMessage(null)}
+                                style={{ 
+                                    minWidth: '20px', 
+                                    height: '18px', 
+                                    padding: '0 4px',
+                                    fontSize: '10px',
+                                    marginLeft: '10px'
+                                }}
+                            >
+                                OK
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
                 <button
                     onClick={applyPatch}
                     disabled={!iwebPath || !managerPath || !allCommandsValid}
@@ -404,18 +429,6 @@ function App() {
                     Apply Patch
                 </button>
             </div>
-
-            {message && (
-                <div className={`message ${message.type}`}>
-                    {message.text}
-                    <button
-                        onClick={() => setMessage(null)}
-                        style={{ float: 'right', minWidth: '20px', height: '16px', padding: 0 }}
-                    >
-                        OK
-                    </button>
-                </div>
-            )}
 
             {/* Debug Logs Panel */}
             <div style={{
