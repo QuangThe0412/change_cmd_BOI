@@ -57,6 +57,11 @@ export default function CommandTable({
     onLog
 }: CommandTableProps) {
 
+    const getCmdLabel = (baseCmd: string) => {
+        const bc = baseCommands.find(c => c.name === baseCmd);
+        return bc ? `${bc.index}. ${baseCmd}` : baseCmd;
+    };
+
     const updateCommandField = (
         index: number,
         field: keyof CommandEntry | `iweb.${keyof CommandEntry['iweb']}` | `manager.${keyof CommandEntry['manager']}`,
@@ -64,6 +69,7 @@ export default function CommandTable({
     ) => {
         const newCommands = [...commands];
         const cmd = newCommands[index];
+        const cmdLabel = getCmdLabel(cmd.baseCmd);
         
         // Ensure command has iweb and manager objects
         if (!newCommands[index].iweb) {
@@ -88,7 +94,7 @@ export default function CommandTable({
                 if (subField === 'offsetStart' || subField === 'offsetEnd' || subField === 'offsetStart2') {
                     const numValue = parseHexOffset(value);
                     (newCommands[index].iweb as any)[subField] = numValue;
-                    onLog?.(`[IWEB-${cmd.baseCmd}] Set ${subField} to ${value} (hex) = ${numValue} (dec)`);
+                    onLog?.(`[IWEB-${cmdLabel}] Set ${subField} to ${value} (hex) = ${numValue} (dec)`);
                 } else {
                     (newCommands[index].iweb as any)[subField] = value;
                 }
@@ -108,8 +114,8 @@ export default function CommandTable({
                 const offsetEnd2 = offsetStart2 > 0 ? offsetStart2 + byteCount : 0;
                 entry.iweb.offsetEnd2 = offsetEnd2;
                 
-                onLog?.(`[IWEB-${cmd.baseCmd}] Recalculated Line 1: offsetEnd=${offsetEnd1}`);
-                if (offsetStart2 > 0) onLog?.(`[IWEB-${cmd.baseCmd}] Recalculated Line 2: offsetEnd=${offsetEnd2}`);
+                onLog?.(`[IWEB-${cmdLabel}] Recalculated Line 1: offsetEnd=${offsetEnd1}`);
+                if (offsetStart2 > 0) onLog?.(`[IWEB-${cmdLabel}] Recalculated Line 2: offsetEnd=${offsetEnd2}`);
                 
                 // Decode Line 1
                 if (iwebFileData && offsetStart1 > 0 && offsetStart1 < iwebFileData.length) {
@@ -121,9 +127,9 @@ export default function CommandTable({
                 } else {
                     entry.iweb.decodedString = '';
                     if (iwebFileData && offsetStart1 > 0 && subField === 'offsetStart') {
-                        onLog?.(`[IWEB-${cmd.baseCmd}] Scanning file for pattern...`);
+                        onLog?.(`[IWEB-${cmdLabel}] Scanning file for pattern...`);
                         const matches = findPatternInBytes(iwebFileData, cmd.baseCmd);
-                        if (matches.length > 0) onLog?.(`[IWEB-${cmd.baseCmd}] FOUND at: ${matches.map(m => numberToHex(m)).join(', ')}`);
+                        if (matches.length > 0) onLog?.(`[IWEB-${cmdLabel}] FOUND at: ${matches.map(m => numberToHex(m)).join(', ')}`);
                     }
                 }
 
@@ -142,7 +148,7 @@ export default function CommandTable({
                 if (subField === 'offsetStart' || subField === 'offsetEnd') {
                     const numValue = parseHexOffset(value);
                     (newCommands[index].manager as any)[subField] = numValue;
-                    onLog?.(`[MANAGER-${cmd.baseCmd}] Set ${subField} to ${value} (hex) = ${numValue} (dec)`);
+                    onLog?.(`[MANAGER-${cmdLabel}] Set ${subField} to ${value} (hex) = ${numValue} (dec)`);
                 } else {
                     (newCommands[index].manager as any)[subField] = value;
                 }
@@ -156,7 +162,7 @@ export default function CommandTable({
                 entry.manager.offsetEnd = offsetEnd;
                 entry.manager.byteCount = byteCount;
                 
-                onLog?.(`[MANAGER-${cmd.baseCmd}] Auto-calculated using IWEB byteCount: byteCount=${byteCount}, offsetEnd=${offsetStart}+${byteCount}=${offsetEnd}`);
+                onLog?.(`[MANAGER-${cmdLabel}] Auto-calculated using IWEB byteCount: byteCount=${byteCount}, offsetEnd=${offsetStart}+${byteCount}=${offsetEnd}`);
                 
                 // Decode if we have file data
                 if (managerFileData && offsetStart > 0 && offsetStart < managerFileData.length) {
@@ -169,73 +175,77 @@ export default function CommandTable({
                             .filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126)
                             .join('');
                         if (offsetEnd > managerFileData.length) {
-                            onLog?.(`[MANAGER-${cmd.baseCmd}] ✓ Decoded bytes ${offsetStart}-${clampedEnd} (clamped from ${offsetEnd}): "${entry.manager.decodedString}"`);
+                            onLog?.(`[MANAGER-${cmdLabel}] ✓ Decoded bytes ${offsetStart}-${clampedEnd} (clamped from ${offsetEnd}): "${entry.manager.decodedString}"`);
                         } else {
-                            onLog?.(`[MANAGER-${cmd.baseCmd}] ✓ Decoded bytes ${offsetStart}-${offsetEnd}: "${entry.manager.decodedString}"`);
+                            onLog?.(`[MANAGER-${cmdLabel}] ✓ Decoded bytes ${offsetStart}-${offsetEnd}: "${entry.manager.decodedString}"`);
                         }
                     } catch (e) {
-                        onLog?.(`[MANAGER-${cmd.baseCmd}] ✗ Decode error: ${e}`);
+                        onLog?.(`[MANAGER-${cmdLabel}] ✗ Decode error: ${e}`);
                     }
                 } else {
                     entry.manager.decodedString = '';
                     const reason = !managerFileData ? 'no file data' : offsetStart <= 0 ? 'offsetStart <= 0' : `offsetStart(${offsetStart}) >= fileSize(${managerFileData?.length})`;
-                    onLog?.(`[MANAGER-${cmd.baseCmd}] Cannot decode: ${reason}`);
+                    onLog?.(`[MANAGER-${cmdLabel}] Cannot decode: ${reason}`);
 
                     // SMART FIND: If offset is invalid, search for the string in the file
                     if (managerFileData && cmd.baseCmd && cmd.baseCmd.length >= 3) {
-                        onLog?.(`[MANAGER-${cmd.baseCmd}] Scanning file for pattern "${cmd.baseCmd}"...`);
+                        onLog?.(`[MANAGER-${cmdLabel}] Scanning file for pattern "${cmd.baseCmd}"...`);
                         const matches = findPatternInBytes(managerFileData, cmd.baseCmd);
                         if (matches.length > 0) {
                             const hexMatches = matches.map(m => numberToHex(m)).join(', ');
-                            onLog?.(`[MANAGER-${cmd.baseCmd}] FOUND pattern at: ${hexMatches}. Please use one of these offsets.`);
+                            onLog?.(`[MANAGER-${cmdLabel}] FOUND pattern at: ${hexMatches}. Please use one of these offsets.`);
                         } else {
-                            onLog?.(`[MANAGER-${cmd.baseCmd}] Pattern not found in file.`);
+                            onLog?.(`[MANAGER-${cmdLabel}] Pattern not found in file.`);
                         }
                     }
                 }
             }
         } else {
             (newCommands[index] as any)[field] = value;
-            onLog?.(`[${cmd.baseCmd}] Set ${field} to "${value}"`);
+            onLog?.(`[${cmdLabel}] Set ${field} to "${value}"`);
         }
         
         onCommandsChange(newCommands);
     };
 
     const addCommand = (baseCmd: string) => {
-        onLog?.(`[+] Adding new command: "${baseCmd}"`);
+        const baseCmdData = baseCommands.find(c => c.name === baseCmd);
+        const label = baseCmdData ? `${baseCmdData.index}. ${baseCmd}` : baseCmd;
+        onLog?.(`[+] Adding new command: "${label}"`);
         onCommandsChange([...commands, createEmptyCommandEntry(baseCmd)]);
     };
 
     const removeCommand = (index: number) => {
-        onLog?.(`[-] Removing command at index ${index}: "${commands[index].baseCmd}"`);
+        const cmd = commands[index];
+        const baseCmdData = baseCommands.find(c => c.name === cmd.baseCmd);
+        const label = baseCmdData ? `${baseCmdData.index}. ${cmd.baseCmd}` : cmd.baseCmd;
+        onLog?.(`[-] Removing command "${label}"`);
         onCommandsChange(commands.filter((_, i) => i !== index));
     };
 
     return (
-        <div className="group-box" style={{ width: '100%' }}>
-            <span className="group-box-label">Command & Pattern Editor (2-Part Configuration)</span>
+        <div className="group-box">
+            <span className="group-box-label">Unified Command Configuration (IWEB + MANAGER)</span>
 
-            {/* IWEB.EXE Section */}
             <div className="editor-section">
-                <h3 className="section-title">IWEB.EXE Configuration</h3>
                 <div className="table-wrapper">
-                    <table className="command-table iweb-table">
+                    <table className="command-table unified-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '15%' }}>Base Command (Label)</th>
-                                <th style={{ width: '10%' }}>Byte Count</th>
-                                <th style={{ width: '15%' }}>Offset Start (Hex)</th>
-                                <th style={{ width: '15%' }}>Offset End</th>
-                                <th style={{ width: '100px' }}>Bytes</th>
-                                <th style={{ width: '20%' }}>Decoded String</th>
-                                <th style={{ width: '15%' }}>New Command</th>
-                                <th style={{ width: '120px' }}>Actions</th>
+                                <th style={{ width: '10%' }}>Base Command</th>
+                                <th style={{ width: '8%' }}>Target</th>
+                                <th style={{ width: '6%' }}>Bytes</th>
+                                <th style={{ width: '12%' }}>Offset Start (Hex)</th>
+                                <th style={{ width: '12%' }}>Offset End</th>
+                                <th style={{ width: '10%' }}>Binary Hex</th>
+                                <th style={{ width: '15%' }}>Decoded String</th>
+                                <th style={{ width: '12%' }}>New Command</th>
+                                <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {commands.map((cmd, index) => {
-                                // Ensure cmd has iweb
+                                const cmdLabel = getCmdLabel(cmd.baseCmd);
                                 const iweb = cmd.iweb || {
                                     offsetStart: 0,
                                     offsetEnd: 0,
@@ -245,122 +255,87 @@ export default function CommandTable({
                                     offsetEnd2: 0,
                                     decodedString2: ''
                                 };
+                                const manager = cmd.manager || {
+                                    offsetStart: 0,
+                                    offsetEnd: 0,
+                                    byteCount: 0,
+                                    decodedString: ''
+                                };
 
                                 const isValidNew = validateNewCommand(cmd.baseCmd, cmd.newCmd);
                                 const baseByteCount = getByteCountFromCommand(cmd.baseCmd);
 
                                 return (
-                                    <React.Fragment key={`iweb-group-${index}`}>
-                                        {/* Row 1: Primary Offset */}
+                                    <React.Fragment key={`unified-group-${index}`}>
+                                        {/* Row 1: IWEB Line 1 */}
                                         <tr 
                                             className={`${!isValidNew ? 'invalid-row' : ''} ${cmd.isBlocked ? 'blocked-row' : ''}`}
                                             style={{ opacity: cmd.isBlocked ? 0.6 : 1 }}
                                         >
-                                            {/* Col 1: Base Command Label */}
-                                            <td className="label-cell">
+                                            {/* Common: Base Command (Label) */}
+                                            <td rowSpan={3} className="label-cell" style={{ verticalAlign: 'middle', borderRight: '1px solid #ddd' }}>
                                                 <select
                                                     value={cmd.baseCmd}
                                                     onChange={(e) => {
-                                                        const oldBaseCmd = cmd.baseCmd;
                                                         const newBaseCmd = e.target.value;
-                                                        const newCmd = [...commands];
-                                                        newCmd[index].baseCmd = newBaseCmd;
-                                                        if (!newCmd[index].iweb) {
-                                                            newCmd[index].iweb = {
-                                                                offsetStart: 0,
-                                                                offsetEnd: 0,
-                                                                byteCount: 0,
-                                                                decodedString: '',
-                                                                offsetStart2: 0,
-                                                                offsetEnd2: 0,
-                                                                decodedString2: ''
-                                                            };
-                                                        }
+                                                        const newCmds = [...commands];
+                                                        newCmds[index].baseCmd = newBaseCmd;
+                                                        
                                                         const byteCount = getByteCountFromCommand(newBaseCmd);
-                                                        newCmd[index].iweb.byteCount = byteCount;
+                                                        if (newCmds[index].iweb) newCmds[index].iweb.byteCount = byteCount;
+                                                        if (newCmds[index].manager) newCmds[index].manager.byteCount = byteCount;
 
-                                                        // Recalculate offsetEnd 1
-                                                        const offsetStart1 = parseHexOffset(newCmd[index].iweb.offsetStart as any);
-                                                        newCmd[index].iweb.offsetEnd = offsetStart1 + byteCount;
+                                                        // Sync offsets
+                                                        const o1 = parseHexOffset(newCmds[index].iweb.offsetStart as any);
+                                                        newCmds[index].iweb.offsetEnd = o1 + byteCount;
+                                                        
+                                                        const o2 = parseHexOffset(newCmds[index].iweb.offsetStart2 as any);
+                                                        if (o2 > 0) newCmds[index].iweb.offsetEnd2 = o2 + byteCount;
 
-                                                        // Recalculate offsetEnd 2
-                                                        const offsetStart2 = parseHexOffset(newCmd[index].iweb.offsetStart2 as any);
-                                                        if (offsetStart2 > 0) {
-                                                            newCmd[index].iweb.offsetEnd2 = offsetStart2 + byteCount;
-                                                        }
+                                                        const om = parseHexOffset(newCmds[index].manager.offsetStart as any);
+                                                        newCmds[index].manager.offsetEnd = om + byteCount;
 
-                                                        // Sync manager fields
-                                                        if (!newCmd[index].manager) newCmd[index].manager = { offsetStart: 0, offsetEnd: 0, byteCount: 0, decodedString: '' };
-                                                        newCmd[index].manager.byteCount = byteCount;
-                                                        const mOffsetStart = parseHexOffset(newCmd[index].manager.offsetStart as any);
-                                                        newCmd[index].manager.offsetEnd = mOffsetStart + byteCount;
-
-                                                        onLog?.(`[IWEB] Changed base command from "${oldBaseCmd}" to "${newBaseCmd}"`);
-                                                        onLog?.(`[IWEB-${newBaseCmd}] Auto-calculated: byteCount=${byteCount}, offsetEnd=${offsetStart1}+${byteCount}=${offsetStart1 + byteCount}`);
-                                                        onCommandsChange(newCmd);
+                                                        onCommandsChange(newCmds);
                                                     }}
                                                     style={{ width: '100%', background: '#f0f0f0', fontWeight: 'bold' }}
                                                 >
-                                                    <option value="">-- Select Base Command --</option>
                                                     {baseCommands.map((c) => (
-                                                        <option key={c.index} value={c.name}>{c.name}</option>
+                                                        <option key={c.index} value={c.name}>
+                                                            {c.index}. {c.name}
+                                                        </option>
                                                     ))}
                                                 </select>
+                                                <div style={{ fontSize: '10px', textAlign: 'center', marginTop: '4px', color: '#666' }}>
+                                                    ({baseByteCount} bytes)
+                                                </div>
                                             </td>
 
-                                            {/* Col 2: Byte Count (Auto, Read-only) */}
-                                            <td className="readonly-cell" title={`Auto-calculated: ${baseByteCount} bytes`}>
-                                                <input
-                                                    type="text"
-                                                    value={baseByteCount}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0' }}
-                                                />
-                                            </td>
-
-                                            {/* Col 3: Offset Start (User Input) */}
+                                            {/* IWEB L1 Specific */}
+                                            <td style={{ fontWeight: 'bold', color: '#0078d4', fontSize: '11px' }}>IWEB L1</td>
+                                            <td className="readonly-cell">{baseByteCount}</td>
                                             <td className="input-cell">
                                                 <input
                                                     type="text"
-                                                    placeholder="0x1F3A20"
                                                     value={numberToHex(iweb.offsetStart)}
                                                     onChange={(e) => updateCommandField(index, 'iweb.offsetStart', e.target.value)}
                                                     style={{ width: '100%', fontFamily: 'monospace' }}
                                                 />
                                             </td>
-
-                                            {/* Col 4: Offset End (Auto, Read-only) */}
-                                            <td className="readonly-cell" title="Auto-calculated">
-                                                <input
-                                                    type="text"
-                                                    value={numberToHex(iweb.offsetEnd)}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace' }}
-                                                />
-                                            </td>
-
-                                            {/* Col 5: Bytes (Read-only) */}
+                                            <td className="readonly-cell">{numberToHex(iweb.offsetEnd)}</td>
                                             <td className="readonly-cell">
                                                 <input
                                                     type="text"
-                                                    value={bytesToHexString(iwebFileData, iweb.offsetStart, iweb.offsetEnd, `IWEB-${cmd.baseCmd}`)}
+                                                    value={bytesToHexString(iwebFileData, iweb.offsetStart, iweb.offsetEnd, `IWEB-L1-${cmdLabel}`)}
                                                     readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace', fontSize: '9px' }}
+                                                    style={{ width: '100%', background: '#f5f5f5', border: 'none', fontSize: '9px', fontFamily: 'monospace' }}
                                                 />
                                             </td>
-
-                                            {/* Col 6: Decoded String (Auto, Read-only) */}
-                                            <td className="readonly-cell">
-                                                <input
-                                                    type="text"
-                                                    value={iweb.decodedString}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#f0f0f0', fontWeight: 'bold', color: '#000080' }}
-                                                />
+                                            <td className="readonly-cell" style={{ fontWeight: 'bold', color: '#000080' }}>
+                                                {iweb.decodedString}
                                             </td>
 
-                                            {/* Col 7: New Command (User Input) */}
-                                            <td className="input-cell">
+                                            {/* Common: New Command */}
+                                            <td rowSpan={3} className="input-cell" style={{ verticalAlign: 'middle', borderLeft: '1px solid #ddd' }}>
                                                 <input
                                                     type="text"
                                                     placeholder={`${baseByteCount} chars`}
@@ -369,30 +344,31 @@ export default function CommandTable({
                                                     onChange={(e) => updateCommandField(index, 'newCmd', e.target.value)}
                                                     style={{
                                                         width: '100%',
+                                                        padding: '4px',
                                                         background: !isValidNew && cmd.newCmd ? '#ffcccc' : 'white',
                                                         border: !isValidNew && cmd.newCmd ? '1px solid #ff0000' : '1px solid #ccc'
                                                     }}
                                                 />
                                             </td>
 
-                                            {/* Col 8: Actions (Block/Remove) */}
-                                            <td rowSpan={2} style={{ verticalAlign: 'middle', textAlign: 'center', borderLeft: '1px solid #ccc' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px' }}>
+                                            {/* Common: Actions */}
+                                            <td rowSpan={3} style={{ verticalAlign: 'middle', textAlign: 'center', borderLeft: '1px solid #ddd' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '5px' }}>
                                                     <button
                                                         onClick={() => {
                                                             const newCmds = [...commands];
                                                             newCmds[index].isBlocked = !newCmds[index].isBlocked;
-                                                            onLog?.(`[${cmd.baseCmd}] ${newCmds[index].isBlocked ? 'Blocked (will not patch)' : 'Unblocked'}`);
+                                                            const bc = baseCommands.find(c => c.name === cmd.baseCmd);
+                                                            const label = bc ? `${bc.index}. ${cmd.baseCmd}` : cmd.baseCmd;
+                                                            onLog?.(`[${label}] ${newCmds[index].isBlocked ? 'Blocked (will skip)' : 'Unblocked'}`);
                                                             onCommandsChange(newCmds);
                                                         }}
+                                                        className={`btn-action ${cmd.isBlocked ? 'btn-unblock' : 'btn-block'}`}
                                                         style={{
                                                             fontSize: '11px',
-                                                            padding: '2px 8px',
+                                                            padding: '4px',
                                                             background: cmd.isBlocked ? '#4caf50' : '#ff9800',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '3px',
-                                                            cursor: 'pointer'
+                                                            color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer'
                                                         }}
                                                     >
                                                         {cmd.isBlocked ? 'Unblock' : 'Block'}
@@ -401,12 +377,9 @@ export default function CommandTable({
                                                         onClick={() => removeCommand(index)}
                                                         style={{
                                                             fontSize: '11px',
-                                                            padding: '2px 8px',
+                                                            padding: '4px',
                                                             background: '#f44336',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '3px',
-                                                            cursor: 'pointer'
+                                                            color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer'
                                                         }}
                                                     >
                                                         Remove
@@ -415,77 +388,61 @@ export default function CommandTable({
                                             </td>
                                         </tr>
 
-                                        {/* Row 2: Secondary Offset (Line 2) */}
-                                        <tr style={{ backgroundColor: '#f9f9f9' }}>
-                                            {/* Col 1: Base Command Label (Read-only clone) */}
-                                            <td className="readonly-cell">
-                                                <input
-                                                    type="text"
-                                                    value={cmd.baseCmd}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0', fontStyle: 'italic' }}
-                                                />
-                                            </td>
-
-                                            {/* Col 2: Byte Count (Read-only clone) */}
-                                            <td className="readonly-cell">
-                                                <input
-                                                    type="text"
-                                                    value={baseByteCount}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0' }}
-                                                />
-                                            </td>
-
-                                            {/* Col 3: Offset Start 2 (User Input) */}
+                                        {/* Row 2: IWEB Line 2 */}
+                                        <tr 
+                                            className={cmd.isBlocked ? 'blocked-row' : ''}
+                                            style={{ opacity: cmd.isBlocked ? 0.6 : 1, backgroundColor: '#f9f9f9' }}
+                                        >
+                                            <td style={{ fontWeight: 'bold', color: '#2b88d8', fontSize: '11px' }}>IWEB L2</td>
+                                            <td className="readonly-cell">{baseByteCount}</td>
                                             <td className="input-cell">
                                                 <input
                                                     type="text"
-                                                    placeholder="0x1F3A20 (Line 2)"
                                                     value={numberToHex(iweb.offsetStart2)}
                                                     onChange={(e) => updateCommandField(index, 'iweb.offsetStart2', e.target.value)}
-                                                    style={{ width: '100%', fontFamily: 'monospace', borderLeft: '3px solid #0078d4' }}
+                                                    style={{ width: '100%', fontFamily: 'monospace' }}
                                                 />
                                             </td>
-
-                                            {/* Col 4: Offset End 2 (Auto, Read-only) */}
+                                            <td className="readonly-cell">{numberToHex(iweb.offsetEnd2)}</td>
                                             <td className="readonly-cell">
                                                 <input
                                                     type="text"
-                                                    value={numberToHex(iweb.offsetEnd2)}
+                                                    value={bytesToHexString(iwebFileData, iweb.offsetStart2 || 0, iweb.offsetEnd2 || 0, `IWEB-L2-${cmdLabel}`)}
                                                     readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace' }}
+                                                    style={{ width: '100%', background: '#f5f5f5', border: 'none', fontSize: '9px', fontFamily: 'monospace' }}
                                                 />
                                             </td>
+                                            <td className="readonly-cell" style={{ fontWeight: 'bold', color: '#006400' }}>
+                                                {iweb.decodedString2}
+                                            </td>
+                                        </tr>
 
-                                            {/* Col 5: Bytes 2 (Read-only) */}
+                                        {/* Row 3: MANAGER */}
+                                        <tr 
+                                            className={cmd.isBlocked ? 'blocked-row' : ''}
+                                            style={{ opacity: cmd.isBlocked ? 0.6 : 1, backgroundColor: '#fffbe6' }}
+                                        >
+                                            <td style={{ fontWeight: 'bold', color: '#856404', fontSize: '11px' }}>MANAGER</td>
+                                            <td className="readonly-cell">{baseByteCount}</td>
+                                            <td className="input-cell">
+                                                <input
+                                                    type="text"
+                                                    value={numberToHex(manager.offsetStart)}
+                                                    onChange={(e) => updateCommandField(index, 'manager.offsetStart', e.target.value)}
+                                                    style={{ width: '100%', fontFamily: 'monospace' }}
+                                                />
+                                            </td>
+                                            <td className="readonly-cell">{numberToHex(manager.offsetEnd)}</td>
                                             <td className="readonly-cell">
                                                 <input
                                                     type="text"
-                                                    value={bytesToHexString(iwebFileData, iweb.offsetStart2 || 0, iweb.offsetEnd2 || 0, `IWEB-L2-${cmd.baseCmd}`)}
+                                                    value={bytesToHexString(managerFileData, manager.offsetStart, manager.offsetEnd, `MANAGER-${cmdLabel}`)}
                                                     readOnly
-                                                    style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace', fontSize: '9px' }}
+                                                    style={{ width: '100%', background: '#f5f5f5', border: 'none', fontSize: '9px', fontFamily: 'monospace' }}
                                                 />
                                             </td>
-
-                                            {/* Col 6: Decoded String 2 (Auto, Read-only) */}
-                                            <td className="readonly-cell">
-                                                <input
-                                                    type="text"
-                                                    value={iweb.decodedString2 || ''}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#f0f0f0', fontWeight: 'bold', color: '#006400' }}
-                                                />
-                                            </td>
-
-                                            {/* Col 7: New Command (Read-only clone) */}
-                                            <td className="readonly-cell">
-                                                <input
-                                                    type="text"
-                                                    value={cmd.newCmd}
-                                                    readOnly
-                                                    style={{ width: '100%', background: '#eee', color: '#666' }}
-                                                />
+                                            <td className="readonly-cell" style={{ fontWeight: 'bold', color: '#856404' }}>
+                                                {manager.decodedString}
                                             </td>
                                         </tr>
                                     </React.Fragment>
@@ -496,111 +453,9 @@ export default function CommandTable({
                 </div>
             </div>
 
-            {/* MANAGER.EXE Section */}
-            <div className="editor-section" style={{ marginTop: '20px' }}>
-                <h3 className="section-title">MANAGER.EXE Configuration</h3>
-                <div className="table-wrapper">
-                    <table className="command-table manager-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '15%' }}>Command Reference</th>
-                                <th style={{ width: '8%' }}>Byte Count</th>
-                                <th style={{ width: '15%' }}>Offset Start (Hex)</th>
-                                <th style={{ width: '15%' }}>Offset End</th>
-                                <th style={{ width: '12%' }}>Bytes</th>
-                                <th style={{ width: '18%' }}>Decoded String</th>
-                                <th style={{ width: '17%' }}>New Command</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {commands.map((cmd, index) => {
-                                return (
-                                    <tr 
-                                        key={`manager-${index}`}
-                                        style={{ opacity: cmd.isBlocked ? 0.6 : 1 }}
-                                    >
-                                        {/* Col 1: Command Reference */}
-                                        <td className="label-cell">
-                                            <input
-                                                type="text"
-                                                value={cmd.baseCmd}
-                                                readOnly
-                                                style={{ width: '100%', background: '#f0f0f0', fontWeight: 'bold' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 2: Byte Count (Mirrored from IWEB) */}
-                                        <td className="readonly-cell" title="Mirrored from IWEB.EXE Configuration">
-                                            <input
-                                                type="text"
-                                                value={cmd.iweb.byteCount}
-                                                readOnly
-                                                style={{ width: '100%', background: '#f0f0f0', color: '#000080' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 3: Offset Start (User Input) */}
-                                        <td className="input-cell">
-                                            <input
-                                                type="text"
-                                                placeholder="0x2A4B10"
-                                                value={numberToHex((cmd.manager || { offsetStart: 0 }).offsetStart)}
-                                                onChange={(e) => updateCommandField(index, 'manager.offsetStart', e.target.value)}
-                                                style={{ width: '100%', fontFamily: 'monospace' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 4: Offset End (Auto, Read-only) */}
-                                        <td className="readonly-cell" title="Auto-calculated">
-                                            <input
-                                                type="text"
-                                                value={numberToHex((cmd.manager || { offsetEnd: 0 }).offsetEnd)}
-                                                readOnly
-                                                style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 5: Bytes (Read-only) */}
-                                        <td className="readonly-cell">
-                                            <input
-                                                type="text"
-                                                value={bytesToHexString(managerFileData, (cmd.manager || { offsetStart: 0 }).offsetStart, (cmd.manager || { offsetEnd: 0 }).offsetEnd, `MANAGER-${cmd.baseCmd}`)}
-                                                readOnly
-                                                style={{ width: '100%', background: '#e0e0e0', fontFamily: 'monospace', fontSize: '9px' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 6: Decoded String (Auto, Read-only) */}
-                                        <td className="readonly-cell">
-                                            <input
-                                                type="text"
-                                                value={(cmd.manager || { decodedString: '' }).decodedString}
-                                                readOnly
-                                                style={{ width: '100%', background: '#f0f0f0', fontWeight: 'bold', color: '#000080' }}
-                                            />
-                                        </td>
-
-                                        {/* Col 7: New Command (Read-only, Mirror IWEB) */}
-                                        <td className="readonly-cell">
-                                            <input
-                                                type="text"
-                                                value={cmd.newCmd}
-                                                readOnly
-                                                style={{ width: '100%', background: '#f0f0f0', color: '#006400' }}
-                                                title="Mirrors New Command from IWEB.EXE"
-                                            />
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             {/* Add Command Section */}
-            <div style={{ marginTop: '15px' }}>
-                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Add new command:</label>
+            <div className="add-command-container" style={{ padding: '8px', background: '#f0f0f0', borderRadius: '4px', border: '1px solid #ccc', flexShrink: 0 }}>
+                <label style={{ marginRight: '10px', fontWeight: 'bold', fontSize: '11px' }}>Add new command:</label>
                 <select
                     id="baseCommandSelect"
                     onChange={(e) => {
@@ -609,11 +464,13 @@ export default function CommandTable({
                             (document.getElementById('baseCommandSelect') as HTMLSelectElement).value = '';
                         }
                     }}
-                    style={{ padding: '5px', minWidth: '200px' }}
+                    style={{ padding: '5px', minWidth: '250px', border: '1px solid #0078d4', borderRadius: '3px' }}
                 >
-                    <option value="">-- Select Base Command to Add --</option>
+                    <option value="">-- Select Base Command --</option>
                     {baseCommands.filter(c => !commands.some(cmd => cmd.baseCmd === c.name)).map((c) => (
-                        <option key={c.index} value={c.name}>{c.name}</option>
+                        <option key={c.index} value={c.name}>
+                            {c.index}. {c.name}
+                        </option>
                     ))}
                 </select>
             </div>

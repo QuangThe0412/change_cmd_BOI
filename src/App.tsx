@@ -365,7 +365,7 @@ function App() {
     };
 
     return (
-        <div className="window-content">
+        <div className="window-content main-window">
             <div className="menu-bar">
                 <button className="menu-item" onClick={openSettingsFile}>
                     Open Settings File (JSON)
@@ -382,67 +382,67 @@ function App() {
                 </span>
             </div>
 
-            <FileSelector
-                iwebPath={iwebPath}
-                managerPath={managerPath}
-                onIwebPathChange={setIwebPath}
-                onManagerPathChange={setManagerPath}
-            />
-
-            <div className="main-layout" style={{ display: 'block' }}>
-                <CommandTable
-                    commands={commands}
-                    onCommandsChange={setCommands}
-                    iwebFileData={iwebFileData}
-                    managerFileData={managerFileData}
-                    baseCommands={baseCommands}
-                    onLog={addLog}
+            <div className="file-selection-section">
+                <FileSelector
+                    iwebPath={iwebPath}
+                    managerPath={managerPath}
+                    onIwebPathChange={setIwebPath}
+                    onManagerPathChange={setManagerPath}
                 />
             </div>
 
-            <div className="action-bar">
-                <div style={{ flex: 1, display: 'flex' }}>
-                    {message && (
-                        <div className={`message ${message.type}`} style={{ width: '100%' }}>
-                            <span>{message.text}</span>
-                            <button
-                                onClick={() => setMessage(null)}
-                                style={{ 
-                                    minWidth: '20px', 
-                                    height: '18px', 
-                                    padding: '0 4px',
-                                    fontSize: '10px',
-                                    marginLeft: '10px'
-                                }}
-                            >
-                                OK
-                            </button>
-                        </div>
-                    )}
+            <div className="command-editor-section">
+                <div className="main-layout" style={{ display: 'block', height: '100%' }}>
+                    <CommandTable
+                        commands={commands}
+                        onCommandsChange={setCommands}
+                        iwebFileData={iwebFileData}
+                        managerFileData={managerFileData}
+                        baseCommands={baseCommands}
+                        onLog={addLog}
+                    />
                 </div>
-                
-                <button
-                    onClick={applyPatch}
-                    disabled={!iwebPath || !managerPath || !allCommandsValid}
-                    className="patch-btn"
-                >
-                    Apply Patch
-                </button>
+            </div>
+
+            <div className="action-bar-section">
+                <div className="action-bar">
+                    <div style={{ flex: 1, display: 'flex' }}>
+                        {message && (
+                            <div className={`message ${message.type}`} style={{ width: '100%' }}>
+                                <span>{message.text}</span>
+                                <button
+                                    onClick={() => setMessage(null)}
+                                    style={{ 
+                                        minWidth: '20px', 
+                                        height: '18px', 
+                                        padding: '0 4px',
+                                        fontSize: '10px',
+                                        marginLeft: '10px'
+                                    }}
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <button
+                        onClick={applyPatch}
+                        disabled={!iwebPath || !managerPath || !allCommandsValid}
+                        className="patch-btn"
+                    >
+                        Apply Patch
+                    </button>
+                </div>
             </div>
 
             {/* Debug Logs Panel */}
-            <div style={{
-                marginTop: '20px',
-                padding: '10px',
-                background: '#1e1e1e',
-                border: '1px solid #444',
-                borderRadius: '4px'
-            }}>
+            <div className="logs-section">
                 <div style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center',
-                    marginBottom: '10px'
+                    marginBottom: '5px'
                 }}>
                     <div style={{ fontWeight: 'bold', color: '#ffff00', fontFamily: 'monospace', fontSize: '11px' }}>
                         DEBUG LOG ({debugLogs.length} events)
@@ -450,7 +450,7 @@ function App() {
                     <button
                         onClick={() => setDebugLogs([])}
                         style={{
-                            padding: '4px 8px',
+                            padding: '2px 8px',
                             fontSize: '10px',
                             background: '#333',
                             color: '#0f0',
@@ -464,15 +464,7 @@ function App() {
                     </button>
                 </div>
 
-                <div style={{
-                    color: '#00ff00',
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    padding: '5px',
-                    background: '#000'
-                }}>
+                <div className="log-entries">
                     {debugLogs.length === 0 ? (
                         <div style={{ color: '#888' }}>Waiting for events...</div>
                     ) : (

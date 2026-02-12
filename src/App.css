@@ -23,7 +23,8 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--w-bg);
   border-top: 2px solid var(--w-white);
   border-left: 2px solid var(--w-white);
@@ -33,58 +34,105 @@ body {
 
 #root {
   width: 100%;
-  padding: 10px;
+  height: 100%;
 }
 
-.window-content {
+.main-window {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-}
-
-.window-content {
+  height: 100%;
   padding: 5px;
-  display: flex;
-  flex-direction: column;
-  gap:5px;
+  gap: 5px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Common Layout */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.main-layout {
-  display: flex;
-  gap: 15px;
-  align-items: flex-start;
-}
-
-.column {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Group Box Style */
-.group-box {
-  border-top: 2px solid var(--w-dark-grey);
-  border-left: 2px solid var(--w-dark-grey);
-  border-right: 2px solid var(--w-white);
-  border-bottom: 2px solid var(--w-white);
-  padding: 15px 10px 10px 10px;
-  margin-top: 10px;
-  position: relative;
-}
-
-.group-box-label {
-  position: absolute;
-  top: -10px;
-  left: 10px;
+/* Section percentage heights */
+.menu-bar {
+  height: 5vh;
+  min-height: 30px;
+  flex-shrink: 0;
   background: var(--w-bg);
-  padding: 0 5px;
-  font-size: 13px;
+  border-bottom: 1px solid var(--w-dark-grey);
+  display: flex;
+  gap: 2px;
+  margin-bottom: 0;
+}
+
+.file-selection-section {
+  height: 12vh;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.command-editor-section {
+  height: 50vh;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.action-bar-section {
+  height: 5vh;
+  min-height: 40px;
+  flex-shrink: 0;
+}
+
+.logs-section {
+  flex: 1; /* Takes remaining space (approx 20%) */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+.log-entries {
+  flex: 1;
+  overflow-y: auto;
+  background: #000;
+  padding: 5px;
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* CommandTable Layout adjustment */
+.command-editor-section .group-box {
+  height: 100%;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 5px 5px 5px;
+  box-sizing: border-box;
+}
+
+.command-editor-section .editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.command-editor-section .table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--w-dark-grey);
+  margin-bottom: 5px;
+}
+
+/* Action Bar adjustment */
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  height: 100%;
+  padding: 0 10px;
+  border-top: none;
 }
 
 /* Win95 Button */
@@ -272,7 +320,7 @@ td {
 
 .group-box-label {
   position: relative;
-  top: -12px;
+  top: -5px;
   left: 10px;
   background: white;
   padding: 0 5px;
@@ -305,6 +353,33 @@ td {
   background: white;
   font-size: 11px;
   border: 1px solid #c0c0c0;
+}
+
+.unified-table thead th {
+  background: #e8f4f8;
+  border: 1px solid #b0bec5;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  color: #0d47a1;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.unified-table td {
+  border: 1px solid #e0e0e0;
+  padding: 4px 6px;
+}
+
+.blocked-row {
+  background-color: #fce4ec !important;
+  color: #888;
+}
+
+.blocked-row input {
+  background-color: #eee !important;
+  color: #999 !important;
 }
 
 .command-table thead {
