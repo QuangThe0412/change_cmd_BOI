@@ -376,7 +376,11 @@ function App() {
                 <button className="menu-item" onClick={resetToDefaults} style={{ color: '#666' }}>
                     Reset
                 </button>
-                <div style={{ flex: 1 }} />
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: '#000080', fontSize: '30px', textTransform: 'uppercase' ,    marginRight: '20%'}}>
+                        Change Command IWEB
+                    </span>
+                </div>
                 <span style={{ fontSize: '11px', color: '#808080', alignSelf: 'center', marginRight: '5px' }}>
                     Auto-save: ON
                 </span>
